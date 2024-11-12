@@ -4,12 +4,21 @@ Instructions on how to setup and run the rapid validation forests for 2024 PbPb 
 ## Setup environment:
 Setup on LXPlus8 for CMSSW_14_1_X.
 ```bash
-cmsrel CMSSW_14_1_4_patch2
-cd CMSSW_14_1_4_patch2/src
+cmsrel CMSSW_14_1_4_patch5
+cd CMSSW_14_1_4_patch5/src
 cmsenv
+
+# Merge the CMSHI branch and add a repository alias
 git cms-merge-topic CmsHI:forest_CMSSW_14_1_X
 git remote add cmshi git@github.com:CmsHI/cmssw.git
+
+# Compile
 scram build -j8
+
+# Redo cmsenv for good measure
+cmsenv
+
+# Initiate VOMS credentials (you will have to provide your VOMS password)
 voms-proxy-init --voms cms
 ```
 
@@ -26,7 +35,7 @@ From the "Branches" tab, add a new branch based on "forest_CMSSW_14_1_X" and nam
 
 Finally, create the link to your private repo.
 ```bash
-cd CMSSW_14_1_4_patch2/src/HeavyIonsAnalysis/Configuration/test/
+cd CMSSW_14_1_4_patch5/src/HeavyIonsAnalysis/Configuration/test/
 
 # Create a remote alias for your repo
 git remote add my-cmssw git@github.com:<your_github_username>/cmssw.git
@@ -42,10 +51,37 @@ git fetch my-cmssw
 git branch -u my-cmssw/rapidValidationForest2024
 ```
 
+## Updating after changes to CmsHI/cmssw
+
+Navigate to `CMSSW_14_1_4_patch5/src`, then run the following:
+```bash
+# Disable rebasing so that updates are added after your config commits
+git config pull.rebase false
+
+# Fetch the status of the CmsHI repo
+git fetch cmshi forest_CMSSW_14_1_X
+
+# If that looks fine, pull the changes
+git pull cmshi/forest_CMSSW_14_1_X
+```
+You may need to resolve merge conflicts after this. If you want to overwrite local changes to specific files, use:
+```bash
+git checkout cmshi/forest_CMSSW_14_1_X path/to/file.ext
+```
+Finally, be sure to push changes to your personal branch *before* starting any new crab/cmssw jobs:
+```bash
+# Check if all of the changes are already added
+git status
+
+# You may need to add a commit message. Include descriptors, such as the PR number
+git commit -m "Updated with CmsHI/cmssw PR #123"
+
+git push my-cmssw rapidValidationForest2024
+```
+
 ## Test the configuration
 
 To test the configuration, you will first need to obtain a sample input file from the dataset you are running over. Easy way to get a file list for a dataset of your choice is the following:
-
 ```bash
 ls /eos/cms/store/group/phys_heavyions/wangj/RECO2023/miniaod_PhysicsHIPhysicsRawPrime0_374322/* > fileListHIPhysicsRawPrime0_run374322.txt
 sed -i -e "s#/eos/cms#root://eoscms.cern.ch/#" fileListHIPhysicsRawPrime0_run374322.txt
